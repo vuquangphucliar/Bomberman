@@ -15,6 +15,14 @@ GREEN = (0, 255, 0)
 RED = (255,0,0)
 BLUE = (0,0,255)
 
+# Load images
+background_image = pygame.image.load("background.png")
+background_image = pygame.transform.scale(background_image, (WIDTH, HEIGHT))
+player_image = pygame.image.load("player.png")
+player_image = pygame.transform.scale(player_image, (50, 50))
+bomb_image = pygame.image.load("bomb.png")
+bomb_image = pygame.transform.scale(bomb_image, (50, 50))
+
 # Initialize font
 font_small = pygame.font.SysFont('sans', 10)
 
@@ -44,14 +52,22 @@ class Player:
     def draw(self, screen):
         screen.blit(self.image, (self.x, self.y))
 
-# Load images
-background_image = pygame.image.load("C:/Users/my pc/Downloads/background.png")
-background_image = pygame.transform.scale(background_image, (WIDTH, HEIGHT))
-player_image = pygame.image.load("C:/Users/my pc/Downloads/player.png")
-player_image = pygame.transform.scale(player_image, (50, 50))
+class Bomb:
+    def __init__(self, x, y, image):
+        self.x = x
+        self.y = y
+        self.image = image
+        self.explode_time = pygame.time.get_ticks() + 5000  # set 5 seconds timer
+
+    def draw(self, screen):
+        screen.blit(self.image, (self.x, self.y))
+
 
 # Initialize player object
 player = Player(17, 35, player_image)
+
+# Initialize bomb object
+bomb = None
 
 # Initialize screen
 pygame.display.set_caption("Bomberman")
@@ -74,10 +90,20 @@ while running:
                 player.move_left()
             elif event.key == pygame.K_RIGHT:
                 player.move_right()
+            elif event.key == pygame.K_SPACE and not bomb:  # create bomb when space key is pressed
+                bomb = Bomb(player.x, player.y, bomb_image)
+
 
     # Draw images and text
+            
     screen.blit(background_image, (0, 0))
+    if bomb:
+        bomb.draw(screen)
+        if pygame.time.get_ticks() > bomb.explode_time:  # explode bomb after 5 seconds
+            bomb = None
     player.draw(screen)
+
+
     mouse_x, mouse_y = pygame.mouse.get_pos()
     text_mouse = font_small.render("(" + str(mouse_x) + "," + str(mouse_y) + ")", True, BLACK)
     screen.blit(text_mouse, (mouse_x + 10, mouse_y))
