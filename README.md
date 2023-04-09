@@ -1,3 +1,0 @@
-# Bomberman
-
-hê lu
