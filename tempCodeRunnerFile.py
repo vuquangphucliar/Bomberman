@@ -13,10 +13,10 @@ player_start_x = 17
 player_start_y = 35
 
 # game space
-LEFT = 45
-RIGHT = 800
-UP = 60
-DOWN = 500
+LEFT = 17
+RIGHT = 833
+UP = 35
+DOWN = 545
 
 # Basic color
 BLACK = (0, 0, 0)
@@ -78,6 +78,14 @@ blocked_coordinates = [(17, 188), (17, 392),
                        (782, 35), (782, 137), (782, 239), (782, 341), (782, 545), 
                        (833, 188), (833, 392)]
 
+all_row_and_cloumn = []
+for col in range(17,834, 51):
+    for row in range(35,545 ,51):
+        if col % 2 == 0 and row % 2 == 0:
+            all_row_and_cloumn.append((col, row))
+
+wall_delete = []
+
 # Define Player class
 class Player:
     def __init__(self, x, y, image):
@@ -104,42 +112,6 @@ class Player:
     def draw(self, screen):
         screen.blit(self.image, (self.x, self.y))
 
-# define bomb class
-# define bomb class
-class Bomb:
-    def __init__(self, x, y, image):
-        self.x = x
-        self.y = y
-        self.image = image
-        self.explode_time = pygame.time.get_ticks() + 4000  # set 5 seconds timer
-        self.exploded = False
-
-    def draw(self, screen):
-        if not self.exploded:
-            screen.blit(self.image, (self.x, self.y))
-            if pygame.time.get_ticks() > self.explode_time:  # explode bomb after 5 seconds
-                self.image = explosion_image
-                self.explode_time = pygame.time.get_ticks() + 800  # set 1 second timer for flame
-                self.exploded = True
-                
-                # calculate offsets for drawing explosion in adjacent cells
-                offsets = [(-51, 0), (51, 0), (0, -51), (0, 51), (-102, 0), (102, 0), (0, 102), (0, 102)]
-                
-                
-                # draw explosion in adjacent cells
-                for offset in offsets:
-                    x = self.x + offset[0]
-                    y = self.y + offset[1]
-                    screen.blit(explosion_image, (x, y))
-
-        else:
-            if pygame.time.get_ticks() > self.explode_time:  # remove flame after 1 second
-                self.image = None
-
-        if self.image:
-            screen.blit(self.image, (self.x, self.y))
-
-        
 # define wall class
 class Wall:
     def __init__(self, x, y, image):
@@ -150,6 +122,136 @@ class Wall:
     def draw(self, screen):
         screen.blit(self.image, (self.x, self.y))
 
+# Initialize wall objects
+wall_objects = []
+
+for wall_pos in wall_list:
+    wall = Wall(wall_pos[0], wall_pos[1], wall_image)
+    wall_objects.append(wall)
+
+for wall_1 in wall_objects:
+    wall = (wall_1[0], wall_1[1])
+    print(wall)
+print("---------------------")
+
+for wall in wall_delete:
+    wall_objects.remove(wall[0], wall[1], wall_image)
+
+# print(wall_objects)
+
+# define bomb class
+class Bomb:
+    def __init__(self, x, y, image):
+        self.x = x
+        self.y = y
+        self.image = image
+        self.explode_time = pygame.time.get_ticks() + 2000  # set 2 seconds timer
+        self.exploded = False
+        self.neighbor_explosions = []
+        
+    def delete_wall(self ,test_x, test_y):
+        wall_delete = []
+        if (test_x, test_y) in blocked_coordinates:
+            blocked_coordinates.remove((test_x, test_y))
+            for wall in wall_list:
+                if wall[0] - 10 <= test_x <= wall[0] + PLAYER_SPEED and wall[1] - 10 <= test_y <= wall[1] + PLAYER_SPEED:
+                    wall_delete.append((wall[0], wall[1]))
+
+            for wall in wall_delete:
+                wall_list.remove(wall)
+
+    def calculate_neighbor_explosions(self):
+        neighbors = []
+        
+        if (self.x + PLAYER_SPEED, self. y) in all_row_and_cloumn or (self.x - PLAYER_SPEED, self.y) in all_row_and_cloumn:
+            neighbors.append((self.x, self.y + PLAYER_SPEED))
+            neighbors.append((self.x, self.y - PLAYER_SPEED))
+
+            if (self.x, self.y + PLAYER_SPEED) not in blocked_coordinates:
+                neighbors.append((self.x, self.y + PLAYER_SPEED * 2))
+                self.delete_wall(self.x, self.y + PLAYER_SPEED * 2)
+
+            if (self.x, self.y - PLAYER_SPEED * 2) not in blocked_coordinates:
+                neighbors.append((self.x, self.y - PLAYER_SPEED * 2))
+                self.delete_wall(self.x, self.y - PLAYER_SPEED * 2)
+
+            self.delete_wall(self.x, self.y + PLAYER_SPEED)
+            self.delete_wall(self.x, self.y - PLAYER_SPEED)
+
+        if ((self.x + PLAYER_SPEED, self.y) not in all_row_and_cloumn or (self.x - PLAYER_SPEED, self.y) not in all_row_and_cloumn) and ((self.x, self.y + PLAYER_SPEED) not in all_row_and_cloumn or (self.x, self.y - PLAYER_SPEED) not in all_row_and_cloumn):
+            neighbors.append((self.x + PLAYER_SPEED, self.y))
+            neighbors.append((self.x - PLAYER_SPEED, self.y))
+            neighbors.append((self.x, self.y + PLAYER_SPEED))
+            neighbors.append((self.x, self.y - PLAYER_SPEED))
+
+            if (self.x + PLAYER_SPEED, self.y) not in blocked_coordinates:
+                neighbors.append((self.x + PLAYER_SPEED * 2, self.y))
+                self.delete_wall(self.x + PLAYER_SPEED * 2, self.y)
+            if (self.x - PLAYER_SPEED, self.y) not in blocked_coordinates:
+                neighbors.append((self.x - PLAYER_SPEED * 2, self.y))
+                self.delete_wall(self.x - PLAYER_SPEED * 2, self.y)
+
+            if (self.x, self.y + PLAYER_SPEED) not in blocked_coordinates:
+                neighbors.append((self.x, self.y + PLAYER_SPEED * 2))
+                self.delete_wall(self.x, self.y + PLAYER_SPEED * 2)
+            if (self.x, self.y - PLAYER_SPEED) not in blocked_coordinates:
+                neighbors.append((self.x, self.y - PLAYER_SPEED * 2))
+                self.delete_wall(self.x, self.y - PLAYER_SPEED * 2)
+
+            self.delete_wall(self.x + PLAYER_SPEED, self.y)
+            self.delete_wall(self.x - PLAYER_SPEED, self.y)
+            self.delete_wall(self.x, self.y + PLAYER_SPEED)
+            self.delete_wall(self.x, self.y - PLAYER_SPEED)
+
+        if ((self.x + PLAYER_SPEED, self.y) not in all_row_and_cloumn or (self.x - PLAYER_SPEED, self.y) not in all_row_and_cloumn) and ((self.x, self.y + PLAYER_SPEED) in all_row_and_cloumn or (self.x, self.y - PLAYER_SPEED) in all_row_and_cloumn):
+            neighbors.append((self.x + PLAYER_SPEED, self.y))
+            neighbors.append((self.x - PLAYER_SPEED, self.y))
+
+
+            if (self.x + PLAYER_SPEED, self.y) not in blocked_coordinates:
+                neighbors.append((self.x + PLAYER_SPEED * 2, self.y))
+                self.delete_wall(self.x + PLAYER_SPEED * 2, self.y)
+            if (self.x - PLAYER_SPEED, self.y) not in blocked_coordinates:
+                neighbors.append((self.x - PLAYER_SPEED * 2, self.y))
+                self.delete_wall(self.x - PLAYER_SPEED * 2, self)
+
+            self.delete_wall(self.x + PLAYER_SPEED, self.y)
+            self.delete_wall(self.x - PLAYER_SPEED, self.y)
+
+        for neighbor in neighbors:
+            x, y = neighbor
+            
+            if self.x == x and LEFT <= x <= RIGHT and UP <= y <= DOWN and (self.y - 35) / PLAYER_SPEED % 2 == 1:
+                self.neighbor_explosions.append((x, y))
+
+            if self.y == y and LEFT <= x <= RIGHT and UP <= y <= DOWN and (self.x - 17) / PLAYER_SPEED % 2 == 1:
+                self.neighbor_explosions.append((x, y))
+
+            if LEFT <= x <= RIGHT and UP <= y <= DOWN and (self.x - 17) / PLAYER_SPEED % 2 == 0 and (self.y - 35) / PLAYER_SPEED % 2 == 0:
+                self.neighbor_explosions.append((x, y))
+
+            if LEFT <= x <= RIGHT and UP <= y <= DOWN and (self.y - 35) / PLAYER_SPEED % 2 == 0 and (self.x - 17) / PLAYER_SPEED % 2 == 0:
+                self.neighbor_explosions.append((x, y))
+                
+    def draw(self, screen):
+        if not self.exploded:
+            screen.blit(self.image, (self.x, self.y))
+            if pygame.time.get_ticks() > self.explode_time:  # explode bomb after 2 seconds
+                self.image = explosion_image
+                self.explode_time = pygame.time.get_ticks() + 300  # set 300ms timer for flame
+                self.exploded = True
+                self.calculate_neighbor_explosions()
+
+        else:
+            if pygame.time.get_ticks() > self.explode_time:  # remove flame after 300ms
+                self.image = None
+            else:
+                for exploosion_pos in self.neighbor_explosions:
+                    screen.blit(self.image, exploosion_pos)
+
+        if self.image:
+            screen.blit(self.image, (self.x, self.y))
+
 
 # Initialize player object
 player = Player(player_start_x, player_start_y, player_image)
@@ -159,12 +261,6 @@ bomb = None
 
 # Initialize the explosion object
 explosion = None
-
-# Initialize wall objects
-wall_objects = []
-for wall_pos in wall_list:
-    wall = Wall(wall_pos[0], wall_pos[1], wall_image)
-    wall_objects.append(wall)
 
 # Initialize screen
 pygame.display.set_caption("Bomberman")
@@ -190,29 +286,29 @@ while running:
                 player.move_right()
             elif event.key == pygame.K_SPACE and not bomb:  # create bomb when space key is pressed
                 bomb = Bomb(player.x, player.y, bomb_image)
-
-
+                
     # Draw images and text
     screen.blit(background_image, (0, 0))
 
-    if bomb:
-        bomb.draw(screen)
-        if pygame.time.get_ticks() > bomb.explode_time:  # explode bomb after 3 seconds
-            bomb = None
-        
-    player.draw(screen)
-    
     # Draw wall objects
     for wall in wall_objects:
         wall.draw(screen)
 
+    if bomb:
+        bomb.draw(screen)
+        if pygame.time.get_ticks() > bomb.explode_time:  # explode bomb after 2 seconds
+            bomb = None
+
+    player.draw(screen)
+
     # print the cursor coordinates to the screen
-    # mouse_x, mouse_y = pygame.mouse.get_pos()
-    # text_mouse = font_small.render("(" + str(mouse_x) + "," + str(mouse_y) + ")", True, BLACK)
-    # screen.blit(text_mouse, (mouse_x + 10, mouse_y))
+    mouse_x, mouse_y = pygame.mouse.get_pos()
+    text_mouse = font_small.render("(" + str(mouse_x) + "," + str(mouse_y) + ")", True, BLACK)
+    screen.blit(text_mouse, (mouse_x + 10, mouse_y))
 
     # Update screen
     pygame.display.flip()
+    pygame.display.update()
 
 # Quit game
 pygame.quit()
